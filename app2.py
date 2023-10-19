@@ -13,7 +13,7 @@ import seabreeze
 from seabreeze.spectrometers import Spectrometer
 import csv
 
-# Use a Bootstrap theme
+# Use a Bootstrap them
 external_stylesheets = [dbc.themes.BOOTSTRAP]
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
