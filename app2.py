@@ -37,7 +37,7 @@ def collect_spec():
         spec.open()
     averaging = 5
     spec.model
-    spec.integration_time_micros(532000)
+    spec.integration_time_micros(100000)
     #spec.trigger_mode(0)
     spec.features['strobe_lamp'][0].enable_lamp(True)
     time.sleep(1)
@@ -52,6 +52,8 @@ def collect_spec():
     #import random
     #wavelengths = list(range(1, 1001, 5))
     #intensities = [random.random() for _ in wavelengths]
+    wavelengths = wavelengths[10:]  # Splicing to remove anomalies at the beginning
+    intensities = intensities[10:]
     spectrum = [wavelengths, intensities]
     return spectrum #np.asarray(spectrum, dtype=float)
 
