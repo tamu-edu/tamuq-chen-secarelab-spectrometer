@@ -37,7 +37,7 @@ def collect_spec():
         spec.open()
     averaging = 5
     spec.model
-    spec.integration_time_micros(100000)
+    spec.integration_time_micros(300000)
     #spec.trigger_mode(0)
     spec.features['strobe_lamp'][0].enable_lamp(True)
     time.sleep(1)
@@ -143,7 +143,7 @@ app.layout = dbc.Container([
                     'yaxis': {'title': 'Intensity'},}}),
                 dcc.Interval(
                     id='interval-component',
-                    interval=time_step*60*1000, # in milliseconds
+                    #interval=time_step*60*1000, # in milliseconds
                     n_intervals=0
                 )
             ]),
@@ -167,7 +167,8 @@ app.layout = dbc.Container([
     [Input('bg-button', 'n_clicks'),
      Input('curr-button', 'n_clicks'),
      Input('clear-bg-button', 'n_clicks'),
-     Input('interval-component', 'n_intervals')],
+     Input('interval-component', 'n_intervals'),
+     Input('start-button', 'n_clicks')],  # Add 'start-button' as a trigger
     [State('filename', 'value'),
      State('graph', 'figure'),
      State('graphbg', 'figure'),
@@ -175,23 +176,24 @@ app.layout = dbc.Container([
      State('upper_wv', 'value'),
      State('time_step', 'value')]
 )
-def update_graph(bg_clicks, curr_clicks, clear_bg_clicks, n_intervals, filename, figure, figurebg, lower_wv, upper_wv, time_step):
+def update_graph(bg_clicks, curr_clicks, clear_bg_clicks, n_intervals, start_clicks, filename, figure, figurebg, lower_wv, upper_wv, time_step):
     global bg_spectrum, curr_spectrum, is_collecting
 
     ctx = dash.callback_context
     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
-
+    
+    # If the "Start" button is clicked, perform an immediate measurement
     if button_id == 'bg-button':
         bg_spectrum = collect_spec()
         figurebg['data'] = [go.Scatter(x=bg_spectrum[0], y=bg_spectrum[1], name='Background')]
         
-    elif button_id == 'curr-button' or (button_id == 'interval-component' and is_collecting):
+    elif (button_id == 'start-button' and start_clicks > 0) or button_id == 'curr-button' or (button_id == 'interval-component' and is_collecting):
         curr_spectrum = collect_spec()
         curr_spectrum[1] = [-np.log10(a / b) for a, b in zip(curr_spectrum[1], bg_spectrum[1])]
         save_spec(filename, curr_spectrum)
         if button_id == 'curr-button':
             labeltxt = curr_clicks
-        elif button_id == 'interval-component' and is_collecting:
+        elif (button_id == 'interval-component' or button_id == 'start-button') and is_collecting:
             labeltxt = n_intervals
         figure['data'].append(go.Scatter(x=curr_spectrum[0], y=curr_spectrum[1], name=f'Current {labeltxt}'))
     elif button_id == 'clear-bg-button' and figure['data']:
@@ -258,6 +260,17 @@ def display_confirm(curr_clicks, start_clicks, filename):
         return True
 
     return False
+
+@app.callback(
+    Output('interval-component', 'interval'),
+    [Input('time_step', 'value')]
+)
+def update_interval(time_step_value):
+    # Set a default time step if the input is empty or invalid
+    if time_step_value is None or time_step_value <= 0:
+        time_step_value = 10  # Default to 1 minute if input is invalid
+    # Convert minutes to milliseconds for the Interval component
+    return time_step_value * 60 * 1000
 
 
 if __name__ == '__main__':
