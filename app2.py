@@ -37,7 +37,7 @@ def collect_spec():
         spec.open()
     averaging = 5
     spec.model
-    spec.integration_time_micros(300000)
+    spec.integration_time_micros(1500000)
     #spec.trigger_mode(0)
     spec.features['strobe_lamp'][0].enable_lamp(True)
     time.sleep(1)
