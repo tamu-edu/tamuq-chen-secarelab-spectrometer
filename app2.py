@@ -26,7 +26,7 @@ start_time = None
 time_step = 1 #in minutes
 
 # Utility functions
-def collect_spec():
+def collect_spec(LightOn):
     # Replace with your actual function
     try:
         spec = Spectrometer.from_first_available()
@@ -37,7 +37,7 @@ def collect_spec():
         spec.open()
     averaging = 5
     spec.model
-    spec.integration_time_micros(1500000)
+    spec.integration_time_micros(650000) #INTEGRATION time
     #spec.trigger_mode(0)
     spec.features['strobe_lamp'][0].enable_lamp(True)
     time.sleep(1)
@@ -46,7 +46,9 @@ def collect_spec():
         time.sleep(1) 
         intensities += spec.intensities() / averaging   
     wavelengths = spec.wavelengths()
-    spec.features['strobe_lamp'][0].enable_lamp(False)
+    #print(LightOn)
+    if not LightOn:
+        spec.features['strobe_lamp'][0].enable_lamp(False)
     spec.close()
 
     #import random
@@ -133,8 +135,12 @@ app.layout = dbc.Container([
                 dcc.Input(id='filename', type='text'),
             ]),
             dbc.Row([
-                #dbc.Label('Filename'),
-                #dcc.Input(id='filename', type='text'),
+                dbc.Label("Toggle"),
+                dbc.Switch(
+                    id="LightOn",
+                    label="Light On",
+                    value=False,
+                ),
             ], style={'margin-top': '20px'}),
         ], width=1),
         dbc.Col([
@@ -174,9 +180,11 @@ app.layout = dbc.Container([
      State('graphbg', 'figure'),
      State('lower_wv', 'value'),
      State('upper_wv', 'value'),
-     State('time_step', 'value')]
+     State('time_step', 'value'),
+     State('LightOn', 'value')]
 )
-def update_graph(bg_clicks, curr_clicks, clear_bg_clicks, n_intervals, start_clicks, filename, figure, figurebg, lower_wv, upper_wv, time_step):
+def update_graph(bg_clicks, curr_clicks, clear_bg_clicks, n_intervals, start_clicks, filename, figure, figurebg, 
+                 lower_wv, upper_wv, time_step, LightOn):
     global bg_spectrum, curr_spectrum, is_collecting
 
     ctx = dash.callback_context
@@ -184,11 +192,11 @@ def update_graph(bg_clicks, curr_clicks, clear_bg_clicks, n_intervals, start_cli
     
     # If the "Start" button is clicked, perform an immediate measurement
     if button_id == 'bg-button':
-        bg_spectrum = collect_spec()
+        bg_spectrum = collect_spec(LightOn)
         figurebg['data'] = [go.Scatter(x=bg_spectrum[0], y=bg_spectrum[1], name='Background')]
         
     elif (button_id == 'start-button' and start_clicks > 0) or button_id == 'curr-button' or (button_id == 'interval-component' and is_collecting):
-        curr_spectrum = collect_spec()
+        curr_spectrum = collect_spec(LightOn)
         curr_spectrum[1] = [-np.log10(a / b) for a, b in zip(curr_spectrum[1], bg_spectrum[1])]
         save_spec(filename, curr_spectrum)
         if button_id == 'curr-button':
